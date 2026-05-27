@@ -1,0 +1,617 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1472,
+        -192
+      ],
+      "id": "e0e282e5-a3c5-4e0f-aaed-9c52b21c6815",
+      "name": "Telegram Trigger",
+      "webhookId": "adce3eda-29eb-4459-8a60-6b55a991a745",
+      "credentials": {
+        "telegramApi": {
+          "id": "Iy5oQV5sDPCACLJW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are a helpful assistant for GBI Cornerstone Church.\nYou can handle two types of requests:\n\n1. WORSHIP SCHEDULE — create monthly service schedules\n2. GENERAL QUESTIONS — answer anything about the church or general topics\n\nDetect the user's intent automatically and respond accordingly.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nINTENT DETECTION\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nIF the user asks to CREATE or MAKE a schedule (keywords: \"schedule\",\n\"jadwal\", \"make schedule\", \"buat jadwal\"):\n  → Follow the SCHEDULE RULES below.\n\nIF the user asks anything else (church info, events, general questions):\n  → Answer directly and helpfully.\n  → If you don't know the answer, use the SERPAPI TOOL to search the web.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nGOOGLE SEARCH — SERPAPI TOOL\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nYou have access to a Google Search tool powered by SerpAPI.\n\nUSE the search tool when:\n- User asks about current news or recent events.\n- User asks something you are not sure about.\n- User asks for directions, maps, or location details.\n- User asks about anything outside church data.\n- You need to verify or find up-to-date information.\n\nDO NOT use the search tool when:\n- The answer is already in your context (church address, service hours).\n- User is asking to create a schedule (use Google Sheet tool instead).\n\nHOW TO USE:\n1. Identify the best keyword from the user's question.\n2. Call the SERPAPI TOOL with that keyword.\n3. Read the search results.\n4. Answer the user based on the results in a clear and friendly way.\n\nEXAMPLE:\nUser: \"How do I get to the church by train?\"\n→ Search: \"GBI Cornerstone Kota Harapan Indah directions KRL\"\n→ Summarize the result and answer the user.\n\nUser: \"What is the weather in Bekasi today?\"\n→ Search: \"weather Bekasi today\"\n→ Answer based on result.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSCHEDULE RULES (only apply when creating a schedule)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nSTEP-BY-STEP:\nStep 1. Read member data from Google Sheet using the available tool.\nStep 2. Identify all Sundays in the requested month.\nStep 3. Build the schedule following the rules below.\nStep 4. Output ONLY a markdown table. No extra text.\n\nSERVICE STRUCTURE:\n- Every SUNDAY, two sessions:\n    • Session 1: 08:00 – 09:00\n    • Session 2: 11:00 – 13:00\n\n[1] WORSHIP LEADER (WL)\n    - One WL covers BOTH sessions on the same Sunday.\n    - Rotated fairly each week.\n    - If WL also has another role (Singer/Guitar), that role\n      is INACTIVE on the day they serve as WL.\n\n[2] KEYBOARD / DRUM / GUITAR\n    - Same player for BOTH sessions on the same Sunday.\n    - Rotated fairly each month.\n\n\n[3] BASS\n    - Check the sheet for bass players.\n    - If only one bass player exists, they serve every Sunday\n      in both sessions with no rotation.\n\n[4] SINGER\n    - Split into TWO different groups each Sunday:\n        • Group A (2 singers) → Session 1\n        • Group B (2 singers) → Session 2\n    - Rotation must be fair and even across month.\n    - Members serving as WL or Instrumentalist that day\n      are REMOVED from the Singer list.\n\nOUTPUT FORMAT (schedule only):\n| Date | WL | Keyboard | Drum | Guitar | Bass | Singer Session 1 | Singer Session 2 |\n|---|---|---|---|---|---|---|---|\n| DD Month YYYY | ... | ... | ... | ... | ... | Name, Name | Name, Name |\n\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nROTATION LOGIC — STEP BY STEP\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nBefore building the schedule, do this for each role:\n\nStep 1. Get the full list of available members for that role from the sheet.\nStep 2. Shuffle or rotate the list to ensure fairness.\nStep 3. Assign members one by one to each Sunday.\nStep 4. Once all members have been used once, only then restart the list.\nStep 5. Double-check: no member appears more than once in the same role\n        across all Sundays in the month. aspecially for singer_sesi 1 or singer_sesi 2\nfor neta able to be singer as long she not WL in that day\n\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSINGER OVERFLOW RULE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nSITUATION: If all available singers have already been scheduled\nonce for the month and there are still Sunday sessions left to fill:\n\nALLOWED: Neta, Steven, and Billy may be scheduled MORE THAN ONCE\nas Singer to fill the remaining slots.\n\nCONDITIONS that must be met before using this rule:\n  1. ALL other singers have already been assigned at least once.\n  2. There are no remaining singers who have not yet served.\n  3. The member (Neta / Steven / Billy) is NOT serving as WL\n     on that specific Sunday.\n  4. The member (Neta / Steven / Billy) is NOT serving as\n     Instrumentalist on that specific Sunday.\n\nPRIORITY ORDER when selecting who serves again:\n  First  → Steven (permanent singer, already in both sessions)\n  Second → Billy  (permanent singer, already in both sessions)\n  Third  → Neta   (only if Steven and Billy are unavailable that day)\n\nEXAMPLE:\n  - Month has 5 Sundays, only 8 singers available.\n  - After 4 Sundays, all 8 singers have served once.\n  - On the 5th Sunday → use Steven, Billy, and/or Neta to fill Singer slots.\n  - BUT if Neta is WL on the 5th Sunday → skip Neta, use Steven and Billy only\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONFLICT CHECK — BEFORE FINALIZING\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nAfter building the full schedule, verify:\n[ ] No member appears more than once as WL in the same month.\n[ ] No member appears more than once as Keyboard / Drum / Guitar in the same month.\n[ ] No singer (except Billy & Steven) appears more than once in any Singer column.\n[ ] No member holds more than ONE active role on the same Sunday.\n\n\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCHURCH INFORMATION\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nChurch name  : GBI Cornerstone\nAddress      : Kota Harapan Indah No.20, Pusaka Rakyat,\n               Kec. Tarumajaya, Kabupaten Bekasi, Jawa Barat 17214\nLeader : Pdt. Yonathan Setiawan\nInstagram : https://www.instagram.com/cornerstone.hi/\nyoutube : https://www.youtube.com/@CornerstoneHi\n\nIbadah Raya : Minggu, 08:00 & 10:30 Pagi\nSekolah Minggu : Minggu, 10:30 Pagi\nWorship Nigh: Kamis, 19:00 Malam\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1232,
+        -192
+      ],
+      "id": "b743361b-95cf-41c2-85ea-ea075668733f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        0
+      ],
+      "id": "77c11bfa-9e26-4df1-a49c-637aa6b5d252",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "lgs8sVakmcg60STO",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "q": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        0
+      ],
+      "id": "bceb1197-945a-4716-aabe-f98b6811c292",
+      "name": "Google search in SerpApi",
+      "credentials": {
+        "serpApi": {
+          "id": "s9jOEuRepkhnPeiU",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply =$input.first().json.output\nconst chatId =$('Telegram Trigger').first().json.message.chat.id\n\nconst MAX_LENGTH = 3500; // safe buffer under 4096\n\n// If short enough, send as-is\nif (reply.length <= MAX_LENGTH) {\n  return [{ json: { chatId, reply } }];\n}\n\n// Split into chunks\nconst chunks = [];\nlet text = reply;\n\nwhile (text.length > 0) {\n  // Try to split at newline for cleaner breaks\n  let splitAt = MAX_LENGTH;\n  const lastNewline = text.lastIndexOf('\\n', MAX_LENGTH);\n  \n  if (lastNewline > MAX_LENGTH * 0.5) {\n    splitAt = lastNewline; // split at natural line break\n  }\n\n  chunks.push(text.slice(0, splitAt).trim());\n  text = text.slice(splitAt).trim();\n}\n\n// Return each chunk as separate item\nreturn chunks.map(chunk => ({\n  json: { chatId, reply: chunk }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -96
+      ],
+      "id": "b437ef37-4c37-4f6d-b630-824d45cb853e",
+      "name": "chunk"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        -64
+      ],
+      "id": "5eb9332e-ab16-4f29-b995-b05c49be5afd",
+      "name": "Send a text message",
+      "webhookId": "68acec02-01a2-4494-9e16-73f9e7434197",
+      "credentials": {
+        "telegramApi": {
+          "id": "Iy5oQV5sDPCACLJW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── n8n Code Node (Google Sheets-ready) ─────────────────────\nconst text = $input.first().json.output;\n\nconst lines = text.split('\\n').filter(l => l.trim().startsWith('|'));\n\nconst rows = lines\n  .map(l => l.split('|').map(c => c.trim()).filter(c => c !== ''))\n  .filter(r => r.length >= 8 \n    && !r[0].startsWith(':') \n    && !r[0].startsWith('Tanggal'));\n\n// Return one item per row — each becomes a spreadsheet row\nreturn rows.map(r => ({\n  json: {\n    Tanggal:      r[0].replace(/\\*/g, ''),\n    WL:           r[1],\n    Keys:         r[2],\n    Drum:         r[3],\n    Guitar:       r[4],\n    Bass:         r[5],\n    Singers_Sesi1: r[6],\n    Singers_Sesi2: r[7],\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -352
+      ],
+      "id": "5e03ebb1-c7bb-4caa-83ff-d237c5c6bc57",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Jadwal Berhasil Dibuat silakan check google sheet jadwal pelayan\nlink = https://docs.google.com/spreadsheets/d/1C2HiQx8_ZffLWrONZJKufL9UYuvu_O4sfZa_j0p5pl8/edit?usp=sharing",
+        "additionalFields": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        -368
+      ],
+      "id": "03341f57-cdba-45a1-ab70-e6699a5f3f6f",
+      "name": "Send a text message1",
+      "webhookId": "68acec02-01a2-4494-9e16-73f9e7434197",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "Iy5oQV5sDPCACLJW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1PF3XEuj9MQS4lym0d_QqzYG-Hdd5OWuacmaMPvoP1TU",
+          "mode": "list",
+          "cachedResultName": "DataPelayan GBI Cornerstone V3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PF3XEuj9MQS4lym0d_QqzYG-Hdd5OWuacmaMPvoP1TU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 347989818,
+          "mode": "list",
+          "cachedResultName": "db_team_pw",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PF3XEuj9MQS4lym0d_QqzYG-Hdd5OWuacmaMPvoP1TU/edit#gid=347989818"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -960,
+        16
+      ],
+      "id": "8df93cf6-3eb4-4cbb-b604-2d937a5806ec",
+      "name": "db_team_pw",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0HIj3hKFRS6iJyH5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1C2HiQx8_ZffLWrONZJKufL9UYuvu_O4sfZa_j0p5pl8",
+          "mode": "list",
+          "cachedResultName": "Jadwal Latihan Juni 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C2HiQx8_ZffLWrONZJKufL9UYuvu_O4sfZa_j0p5pl8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1954434040,
+          "mode": "list",
+          "cachedResultName": "Jadwal Juni 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1C2HiQx8_ZffLWrONZJKufL9UYuvu_O4sfZa_j0p5pl8/edit#gid=1954434040"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Tanggal",
+              "displayName": "Tanggal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "WL",
+              "displayName": "WL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Keyboard",
+              "displayName": "Keyboard",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Drum",
+              "displayName": "Drum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Guitar",
+              "displayName": "Guitar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Bass",
+              "displayName": "Bass",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Singers_Sesi1",
+              "displayName": "Singers_Sesi1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Singers_Sesi2",
+              "displayName": "Singers_Sesi2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Keys",
+              "displayName": "Keys",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        -368
+      ],
+      "id": "679db19b-4d3b-463c-b854-dabbf38bd56a",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0HIj3hKFRS6iJyH5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -1408,
+        0
+      ],
+      "id": "54c2ac83-a3a6-4d3b-82aa-4fa04f87cc17",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kzsyKF0B2y1bMhpz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        0
+      ],
+      "id": "b06a32fd-dc28-4973-b394-1a93a16ebd2c",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "jadwal pelayan",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "40f4a7ff-f097-4a1f-8dd5-c8933a0eb57b"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d6f534ba-b35d-4b32-ae65-403bb51d02de",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "jadwal ibadah",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        -208
+      ],
+      "id": "52488a64-177d-4f6c-95bf-6b9f558d5b43",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        -208
+      ],
+      "id": "532a3774-6017-4117-9219-fa74f54a313f",
+      "name": "Send a text message2",
+      "webhookId": "68acec02-01a2-4494-9e16-73f9e7434197",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "Iy5oQV5sDPCACLJW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = $input.first().json.output;\nconst chatId = $('Telegram Trigger').first().json.message.chat.id;\n\n// Convert markdown to Telegram-compatible format\nfunction convertToTelegram(text) {\n  return text\n    // Bold: **text** → *text* (Telegram markdown)\n    .replace(/\\*\\*(.*?)\\*\\*/g, '*$1*')\n    \n    // Bullet points: \"*   text\" or \"-   text\" → \"• text\"\n    .replace(/^\\*\\s+/gm, '• ')\n    .replace(/^-\\s+/gm, '• ')\n    \n    // Remove leftover single * that are not bold\n    .replace(/(?<!\\*)\\*(?!\\*)/g, '')\n    \n    // Clean up excessive newlines\n    .replace(/\\n{3,}/g, '\\n\\n')\n    \n    .trim();\n}\n\nconst converted = convertToTelegram(reply);\nconst MAX_LENGTH = 3500;\n\nif (converted.length <= MAX_LENGTH) {\n  return [{ json: { chatId, reply: converted } }];\n}\n\n// Split into chunks\nconst chunks = [];\nlet text = converted;\n\nwhile (text.length > 0) {\n  let splitAt = MAX_LENGTH;\n  const lastNewline = text.lastIndexOf('\\n', MAX_LENGTH);\n  if (lastNewline > MAX_LENGTH * 0.5) {\n    splitAt = lastNewline;\n  }\n  chunks.push(text.slice(0, splitAt).trim());\n  text = text.slice(splitAt).trim();\n}\n\nreturn chunks.map(chunk => ({ json: { chatId, reply: chunk } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -208
+      ],
+      "id": "99bfd3fd-9c71-4828-b18a-4552becdb2d4",
+      "name": "chunk1"
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google search in SerpApi": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chunk": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "db_team_pw": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "chunk1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "chunk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chunk1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "31d73df309c11bdb80e26561fba9b514337029a1b5a3b4ac7879d37aad8975f4"
+  }
+}
